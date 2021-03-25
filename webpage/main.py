@@ -1,7 +1,7 @@
-from flask import Flask, render_template, redirect, url_for
+from flask import Flask, render_template  # , redirect, url_for
 from flask_bootstrap import Bootstrap
 from flask_wtf import FlaskForm
-from wtforms import StringField, SubmitField, SelectField
+from wtforms import SubmitField, SelectField  # StringField,
 from wtforms.validators import DataRequired
 import wtforms
 import xmlrpc.client
@@ -15,6 +15,7 @@ app.config['SECRET_KEY'] = 'C2HWGVoMGfNTBsrYQg8EcMrdTimkZfAb'
 
 # Flask-Bootstrap requires this line
 Bootstrap(app)
+
 
 class OptionalIfFieldEqualTo(wtforms.validators.Optional):
     # a validator which makes a field optional if
@@ -32,10 +33,14 @@ class OptionalIfFieldEqualTo(wtforms.validators.Optional):
         if other_field.data == self.value:
             super(OptionalIfFieldEqualTo, self).__call__(form, field)
 
+
 class NameForm(FlaskForm):
-    function = SelectField('Function', choices=[('Put Task'), ('Create Worker'), ('Eliminate Worker')],validators=[DataRequired()])
-    task = SelectField('Task', choices=[('Patata'), ('Poma')], validators=[OptionalIfFieldEqualTo('function', 'Put Task')])
+    function = SelectField('Function', choices=['Put Task', 'Create Worker', 'Eliminate Worker'],
+                           validators=[DataRequired()])
+    task = SelectField('Task', choices=['Patata', 'Poma'],
+                       validators=[OptionalIfFieldEqualTo('function', 'Put Task')])
     submit = SubmitField('Submit')
+
 
 @app.route('/', methods=['GET', 'POST'])
 def index():
@@ -48,7 +53,7 @@ def index():
         task = form.task.data
         if function == 'Put Task':
             proxy.put_task(task)
-            message = 'Tasca ' + str(task) + ' afegida' 
+            message = 'Tasca ' + str(task) + ' afegida'
         if function == 'Create Worker':
             id = proxy.create_worker()
             message = 'Node ' + str(id) + ' creat'
@@ -56,6 +61,7 @@ def index():
             proxy.eliminate_worker(0)
             message = 'Node eliminat'
     return render_template('index.html', form=form, message=message)
+
 
 if __name__ == "__main__":
     app.run()
