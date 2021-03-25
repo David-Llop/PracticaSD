@@ -1,4 +1,7 @@
 # Default ignored files
 /shelf/
-*.xml
-*.iml
+misc.xml
+modules.xml
+PracticaSD.iml
+vcs.xml
+workspace.xml
