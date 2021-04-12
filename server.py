@@ -18,7 +18,7 @@ server = SimpleXMLRPCServer(
     allow_none=True)
 
 
-def start_worker(lock):
+def start_worker(id, lock):
     global r
     while True:
         task = r.blpop('cua')
@@ -47,23 +47,26 @@ def eliminate_worker(id):
     global WORKER_ID
     global FREE_WORKERS
 
-    FREE_WORKERS[id].acquire()
-    WORKERS[WORKER_ID].join()
-    WORKERS.remove(WORKERS[id])
-    FREE_WORKERS.remove(FREE_WORKERS[id])
+    FREE_WORKERS[int(id)].acquire()
+    WORKERS[int(id)].join()
+    WORKERS.remove(WORKERS[int(id)])
+    FREE_WORKERS.remove(FREE_WORKERS[int(id)])
 
 
 def put_task(task):
     global r
     r.rpush('cua', task)
 
+def main():
+    server.register_function(put_task)
+    server.register_function(eliminate_worker)
+    server.register_function(create_worker)
+    create_worker()
+    try:
+        print('Use Control-C to exit')
+        server.serve_forever()
+    except KeyboardInterrupt:
+        print('Exiting')
 
-server.register_function(put_task)
-server.register_function(eliminate_worker)
-server.register_function(create_worker)
-create_worker()
-try:
-    print('Use Control-C to exit')
-    server.serve_forever()
-except KeyboardInterrupt:
-    print('Exiting')
+if __name__ == "__main__":
+    main()

@@ -58,7 +58,7 @@ def index():
             id = proxy.create_worker()
             message = 'Node ' + str(id) + ' creat'
         if function == 'Eliminate Worker':
-            proxy.eliminate_worker(0)
+            proxy.eliminate_worker('0')
             message = 'Node eliminat'
     return render_template('index.html', form=form, message=message)
 
