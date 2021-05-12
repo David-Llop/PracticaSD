@@ -9,8 +9,6 @@ from plyer import notification
 
 WORKERS = {}
 WORKER_ID = 0
-SEMS = {}
-SEMS_ID = 0
 r = redis.Redis()
 
 logging.basicConfig(level=logging.INFO)
@@ -20,44 +18,6 @@ server = SimpleXMLRPCServer(
     logRequests=True,
     allow_none=True)
 
-
-def countingWords_sem(id, file, sem):
-    global SEMS
-    sem = int(sem)
-    paraules = 0
-    resp = requests.get(file)
-    with open(str(id) + "aux.txt", 'wb') as f:
-        f.write(resp.content)
-    with open(str(id) + "aux.txt", 'r') as f:
-        for line in f:
-            paraules += len(line.split(' '))
-    with open(str(sem) + "sem_aux.txt", 'a') as f:
-        f.write(str(paraules)+'\n')
-    SEMS[sem] -= 1
-    os.remove(str(id) + "aux.txt")
-
-
-def countingWords_ctl(sem):
-    global SEMS
-    paraules = int('0')
-    sem = int(sem)
-    if SEMS[sem] > 1:
-        r.rpush('cua', 'CW_ctl,' + str(sem))
-        return
-    with open(str(sem) + "sem_aux.txt", 'r') as f:
-        for line in f:
-            paraules += int(line)
-
-    notification.notify(
-        title='Resultat CountingWords múltiples fitxers',
-        message=str(paraules),
-        app_name='Practica 1 SD',
-        timeout=5000,
-        toast=True
-    )
-    os.remove(str(sem) + "sem_aux.txt")
-
-
 def start_worker(id):
     global r
     while True:
@@ -66,30 +26,14 @@ def start_worker(id):
             aux = str(task).split("'")[3]
             file = aux.split(',')[1]
             if aux.split(',')[0] == 'CountingWords':
-                if len(aux.split(',')) == 2:
-                    countingWords(id, file)
-                else:
-                    countingWords(id, aux.replace(aux.split(',')[0] + ',', ''))
+                countingWords(id, file)
             elif aux.split(',')[0] == 'WordCount' and len(aux.split(',')) == 2:
                 wordCount(id, file)
-            elif aux.split(',')[0] == 'CW_sem':
-                countingWords_sem(id, file, aux.split(',')[2])
-            elif aux.split(',')[0] == 'CW_ctl':
-                countingWords_ctl(file)
 
 
 def countingWords(id, file):
-    global SEMS
-    global SEMS_ID
     global r
     paraules = 0
-    if len(file.split(',')) > 1:
-        SEMS[SEMS_ID] = len(file.split(',')) + 1
-        for f in file.split(','):
-            r.rpush('cua', 'CW_sem,' + f + ',' + str(SEMS_ID))
-        r.rpush('cua', 'CW_ctl,' + str(SEMS_ID))
-        SEMS_ID += 1
-        return
     resp = requests.get(file)
     with open(str(id) + "aux.txt", 'wb') as f:
         f.write(resp.content)
