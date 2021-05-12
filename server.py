@@ -1,15 +1,32 @@
 import logging
 import os
-from multiprocessing import Process
+from multiprocessing import Process, Manager
 from xmlrpc.server import SimpleXMLRPCServer
 import redis
 import requests
-from plyer.utils import platform
 from plyer import notification
 
+global COUNTERS
 WORKERS = {}
 WORKER_ID = 0
 r = redis.Redis()
+
+
+def newCount(value):
+    global COUNTERS
+    global COUNTERS_ID
+    COUNTERS [COUNTERS_ID] = value
+    WORKER_ID += 1
+
+
+def decCount(id):
+    global COUNTERS
+    COUNTERS[id] -=1
+
+def getCount(id):
+    global COUNTERS
+    return  COUNTERS[id]
+
 
 logging.basicConfig(level=logging.INFO)
 
@@ -106,6 +123,9 @@ def workersList():
 
 def main():
     global r
+    manager = Manager()
+    global COUNTERS
+    COUNTERS = manager.dict()
     server.register_function(put_task)
     server.register_function(eliminate_worker)
     server.register_function(create_worker)
@@ -116,6 +136,7 @@ def main():
     except KeyboardInterrupt:
         print('Exiting')
     r.flushall()
+
 
 if __name__ == "__main__":
     main()
