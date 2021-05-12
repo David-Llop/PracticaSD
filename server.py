@@ -1,17 +1,33 @@
 import logging
 import os
-from multiprocessing import Process
+from multiprocessing import Process, Manager
 from xmlrpc.server import SimpleXMLRPCServer
 import redis
 import requests
-from plyer.utils import platform
 from plyer import notification
 
+global COUNTERS
 WORKERS = {}
 WORKER_ID = 0
-SEMS = {}
-SEMS_ID = 0
+COUNTERS_ID = 0
 r = redis.Redis()
+
+
+def newCount(value):
+    global COUNTERS
+    global COUNTERS_ID
+    COUNTERS [COUNTERS_ID] = value
+    WORKER_ID += 1
+
+
+def decCount(id):
+    global COUNTERS
+    COUNTERS[id] -=1
+
+def getCount(id):
+    global COUNTERS
+    return  COUNTERS[id]
+
 
 logging.basicConfig(level=logging.INFO)
 
@@ -32,8 +48,8 @@ def countingWords_sem(id, file, sem):
         for line in f:
             paraules += len(line.split(' '))
     with open(str(sem) + "sem_aux.txt", 'a') as f:
-        f.write(str(paraules)+'\n')
-    SEMS[sem] -= 1
+        f.write(str(paraules) + '\n')
+    decCount(sem)
     os.remove(str(id) + "aux.txt")
 
 
@@ -41,7 +57,7 @@ def countingWords_ctl(sem):
     global SEMS
     paraules = int('0')
     sem = int(sem)
-    if SEMS[sem] > 1:
+    if getCount(sem) > 1:
         r.rpush('cua', 'CW_ctl,' + str(sem))
         return
     with open(str(sem) + "sem_aux.txt", 'r') as f:
@@ -84,7 +100,7 @@ def countingWords(id, file):
     global r
     paraules = 0
     if len(file.split(',')) > 1:
-        SEMS[SEMS_ID] = len(file.split(',')) + 1
+        newCount(len(file.split(',')))
         for f in file.split(','):
             r.rpush('cua', 'CW_sem,' + f + ',' + str(SEMS_ID))
         r.rpush('cua', 'CW_ctl,' + str(SEMS_ID))
@@ -162,6 +178,9 @@ def workersList():
 
 def main():
     global r
+    manager = Manager()
+    global COUNTERS
+    COUNTERS = manager.dict()
     server.register_function(put_task)
     server.register_function(eliminate_worker)
     server.register_function(create_worker)
@@ -172,6 +191,7 @@ def main():
     except KeyboardInterrupt:
         print('Exiting')
     r.flushall()
+
 
 if __name__ == "__main__":
     main()
