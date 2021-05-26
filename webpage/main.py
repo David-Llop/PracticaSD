@@ -57,10 +57,14 @@ def index():
     message = ""
     if form.validate_on_submit():
         function = form.function.data
-        task = form.task.data+",http://localhost:8000/"+form.file.data
+        task = form.task.data+","+str(proxy.get_task())+";"
+        for i in form.file.data.split(','):
+            task += "http://localhost:8000/"+i+","
+        task = task[:-1]
         if function == 'Put Task':
             proxy.put_task(task)
             message = 'Tasca ' + str(task) + ' afegida'
+            proxy.inc_task()
         if function == 'Create Worker':
             id = proxy.create_worker()
             message = 'Node ' + str(id) + ' creat'
